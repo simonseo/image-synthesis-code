@@ -1,0 +1,4 @@
+	r_shift=array([-59,  -8])	g_shift=array([ 3, -4])	emir
+	r_shift=array([-51, 204])	g_shift=array([-24, -12])	emir
+	r_shift=array([-51, 204])	g_shift=array([-24, -12])	emir
+	r_shift=array([-59,  -8])	g_shift=array([ 3, -4])	emir

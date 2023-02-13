@@ -1,0 +1,10 @@
+	r_shift=array([107,  17])	g_shift=array([-3,  7])	emir
+	r_shift=array([108,   7])	g_shift=array([52,  5])	three_generations
+	r_shift=array([107,   1])	g_shift=array([111,  -7])	train
+	r_shift=array([89, 22])	g_shift=array([42, 16])	icon
+	r_shift=array([ 7, -1])	g_shift=array([ 1, -1])	cathedral
+	r_shift=array([118, -15])	g_shift=array([144,  -7])	village
+	r_shift=array([130,  -5])	g_shift=array([50, -2])	self_portrait
+	r_shift=array([120,   7])	g_shift=array([118,  -3])	harvesters
+	r_shift=array([123, -17])	g_shift=array([57, -6])	lady
+	r_shift=array([80,  0])	g_shift=array([57,  4])	turkmen
