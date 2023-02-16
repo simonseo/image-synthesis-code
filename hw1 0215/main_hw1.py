@@ -7,11 +7,16 @@ import numpy as np
 import skimage as sk
 import skimage.io as skio
 
+from utils import get_channels
+
 # name of the input file
 imname = 'data/cathedral.jpg'
 
 # read in the image
 im = skio.imread(imname)
+
+r,g,b = get_channels(im)
+
 
 # convert to double (might want to do this later on to save memory)
 im = sk.img_as_float(im)
@@ -34,7 +39,8 @@ r = im[2*height: 3*height]
 im_out = np.dstack([ar, ag, b])
 
 # save the image
-fname = '/out_path/out_fname.jpg'
+fname = '/out_pa
+th/out_fname.jpg'
 skio.imsave(fname, im_out)
 
 # display the image

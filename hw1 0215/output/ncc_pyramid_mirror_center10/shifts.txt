@@ -1,0 +1,11 @@
+	r_shift=array([-48, -38])	g_shift=array([-24, -12])	emir
+	r_shift=array([-54,  -7])	g_shift=array([-26, -10])	three_generations
+	r_shift=array([-43, -16])	g_shift=array([-21,  -3])	train
+	r_shift=array([-45, -12])	g_shift=array([-20,  -9])	icon
+	r_shift=array([118,  98])	g_shift=array([82, 68])	cathedral
+	r_shift=array([-68, -11])	g_shift=array([-32,  -6])	village
+	r_shift=array([-87, -18])	g_shift=array([-39, -14])	self_portrait
+	r_shift=array([-62,  -8])	g_shift=array([-30,  -9])	harvesters
+	r_shift=array([  0, -35])	g_shift=array([ -2, -13])	lady
+	r_shift=array([-58, -15])	g_shift=array([-28, -11])	turkmen
+total runtime 1m 2s
