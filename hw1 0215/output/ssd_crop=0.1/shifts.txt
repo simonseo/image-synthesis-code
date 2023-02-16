@@ -1,0 +1,7 @@
+	r_shift=array([-2, 39])	g_shift=array([ 9, 21])	emir
+	r_shift=array([-1, 19])	g_shift=array([ 9, 23])	three_generations
+	r_shift=array([9, 2])	g_shift=array([ 9, -3])	train
+	r_shift=array([ 9, 25])	g_shift=array([ 9, 18])	icon
+	r_shift=array([9, 1])	g_shift=array([5, 2])	cathedral
+	r_shift=array([ 9, 39])	g_shift=array([-6, -2])	village
+	r_shift=array([ 9, 39])	g_shift=array([ 9, -5])	self_portrait

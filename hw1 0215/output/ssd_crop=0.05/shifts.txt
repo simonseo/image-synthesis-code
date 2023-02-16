@@ -1,0 +1,2 @@
+	r_shift=array([-10,   5])	g_shift=array([ 9, 22])	emir
+	r_shift=array([-6, -2])	g_shift=array([8, 0])	three_generations
