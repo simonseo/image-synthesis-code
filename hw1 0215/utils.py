@@ -3,6 +3,26 @@ import skimage as sk
 import skimage.io as skio
 import os
 
+skio.use_plugin('matplotlib', 'imshow')
+
+
+# The following plug-ins are available:
+
+# ========== ==============================================================
+# Plugin     Description
+# ---------- --------------------------------------------------------------
+# qt         Fast image display using the Qt library. Deprecated since
+#            0.18. Will be removed in 0.20.
+# imread     Image reading and writing via imread
+# gdal       Image reading via the GDAL Library (www.gdal.org)
+# simpleitk  Image reading and writing via SimpleITK
+# gtk        Fast image display using the GTK library
+# pil        Image reading via the Python Imaging Library
+# fits       FITS image reading via PyFITS
+# matplotlib Display or save images using Matplotlib
+# tifffile   Load and save TIFF and TIFF-based images using tifffile.py
+# imageio    Image reading via the ImageIO Library
+# ========== ==============================================================()
 
 def show(im):
     skio.imshow(im)
@@ -31,11 +51,15 @@ def crop(channel, factor=0.1):
     Returns:
         np.ndarray: cropped channel
     """
-    h, w = channel.shape
+    h, w = channel.shape[:2]
     center = (1-factor)/2.0
     h_center = int(h*center)
     w_center = int(w*center)
     return channel[h_center:h-h_center, w_center:w-w_center] # only keep center 80%
+
+def scale(channel, factor=0.25):
+    channel = sk.transform.rescale(channel, factor) # scale down to reduce search space
+    return channel
 
 def mirror_roll(channel, distance, axis):
     """Usage: shifted = mirror_roll(c1, center[0]+dh, axis=0)"""
@@ -47,6 +71,14 @@ def mirror_roll(channel, distance, axis):
     cropped = padded.take(range(distance, shape[axis]+distance), axis=axis, mode='wrap')
     return cropped
 
+def fill_shift(channel, distance, axis):
+    shape = channel.shape
+    pad_width = [[0,0],[0,0]]
+    direction = int(distance > 0)
+    pad_width[axis][direction] = np.abs(distance)
+    padded = np.pad(channel, pad_width, mode='constant', constant_values=1)
+    cropped = padded.take(range(distance, shape[axis]+distance), axis=axis, mode='wrap')
+    return cropped
 
 def shift_image(channel, shift, shift_fn=np.roll):
     '''shift_fn can be np.roll or mirror_roll'''

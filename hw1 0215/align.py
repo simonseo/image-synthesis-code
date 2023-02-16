@@ -1,7 +1,14 @@
+from functools import partial
+import numpy as np
+import skimage as sk
+
+from utils import fill_shift, mirror_roll
+
+
 # aligning, stacking, post_processing algorithms
 def dumb_stack(r,g,b):
     return np.dstack([r, g, b]), (0,0), (0,0)
-def ssd_brute_force_stack(r,g,b):
+def ssd_brute_force_stack(r,g,b, scale=1/4):
     """
     Align channels by minimizing sum of squared differences.
     L2 norm also known as the Sum of Squared Differences (SSD) distance 
@@ -13,9 +20,10 @@ def ssd_brute_force_stack(r,g,b):
         g (np.ndarray): channel that is not aligned with the other two
         b (np.ndarray): channel that is not aligned with the other two
     """
+    inverse_scale = 1/scale
     def preprocess(channel):
         h, w = channel.shape
-        channel = sk.transform.rescale(channel, 1/4) # scale down to reduce search space
+        channel = sk.transform.rescale(channel, scale) # scale down to reduce search space
         return channel
 
     def align(c1, c2):
@@ -34,9 +42,9 @@ def ssd_brute_force_stack(r,g,b):
                     min_ssd = ssd
                     argmin_dx = dx
                     argmin_dy = dy
-        c1 = np.roll(c1, argmin_dy*4, 0)
-        c1 = np.roll(c1, argmin_dx*4, 1)
-        return c1, (argmin_dy*4, argmin_dx*4)
+        c1 = np.roll(c1, argmin_dy*inverse_scale, 0)
+        c1 = np.roll(c1, argmin_dx*inverse_scale, 1)
+        return c1, (argmin_dy*inverse_scale, argmin_dx*inverse_scale)
     ag, g_shift = align(g, b)
     ar, r_shift = align(r, b)
     # show(np.dstack([ar, ag, b]))
@@ -89,7 +97,7 @@ def ncc_brute_force_stack(r,g,b, crop=False):
 #####################
 
 
-def ssd_align(c1, c2, center=(0,0)):
+def ssd_align(c1, c2, center=(0,0), hrange=(-2,3), wrange=(-2,3)):
     """
     Align channels by minimizing sum of squared differences.
     L2 norm also known as the Sum of Squared Differences (SSD) distance 
@@ -99,8 +107,9 @@ def ssd_align(c1, c2, center=(0,0)):
     min_ssd = np.Inf
     argmin_dh = 0
     argmin_dw = 0
-    for dh in range(-2,3):
-        for dw in range(-2,3):
+    print(f"{center=} {hrange=} {wrange=}")
+    for dh in range(*hrange):
+        for dw in range(*wrange):
             shifted = np.roll(c1, center[0]+dh, axis=0)
             shifted = np.roll(shifted, center[1]+dw, axis=1)
             ssd = np.sum(np.power(c2-shifted, 2))
@@ -109,7 +118,7 @@ def ssd_align(c1, c2, center=(0,0)):
             min_ssd = ssd
             argmin_dh = dh
             argmin_dw = dw
-        print(f"{dh=} {min_ssd=}")
+    print(f"{min_ssd=}")
     return np.array((center[0]+argmin_dh, center[1]+argmin_dw))
 
 
@@ -124,7 +133,9 @@ def _ncc_align(c1, c2, center=(0,0), shift_fn=mirror_roll):
     """
 
     def preprocess(channel):
-        return channel/np.linalg.norm(channel)
+        c = channel - channel.mean()
+
+        return c/np.linalg.norm(c)
         # return (channel-channel.mean())/channel.std() # normalizem
 
     c1 = preprocess(c1)
@@ -142,20 +153,25 @@ def _ncc_align(c1, c2, center=(0,0), shift_fn=mirror_roll):
             min_ssd = ssd
             argmin_dh = dh
             argmin_dw = dw
-        print(f"{dh=} {min_ssd=}")
+    print(f"{min_ssd=}")
     return np.array((center[0]+argmin_dh, center[1]+argmin_dw))
 
 ##################
 # Create NCC functions
 ##################
-ncc_align = partial(_ncc_align, roll=np.roll)
-ncc_mirror_align = partial(_ncc_align, roll=mirror_roll)
+ncc_align = partial(_ncc_align, shift_fn=np.roll)
+ncc_mirror_align = partial(_ncc_align, shift_fn=mirror_roll)
+ncc_fill_align = partial(_ncc_align, shift_fn=fill_shift)
 
 ##################
 # Iterative alignment using image pyramids
 ##################
 def iterative_align(r,g,b, align=ssd_align, depth=6):
-    # depth = int(np.log2(np.min(r.shape)/10))
+    if depth < 0:
+        # automatic depth decision
+        depth = int(np.log2(np.min(r.shape)/2))
+        print(f"auto {depth=}")
+
     # print(f"{depth=}")
     if depth == 0:
         return np.array([0,0]), np.array([0,0])
@@ -170,5 +186,13 @@ def iterative_align(r,g,b, align=ssd_align, depth=6):
     r_shift = align(r,b, r_shift*2)
     g_shift = align(g,b, g_shift*2)
     print(f"{depth=} {r_shift=} {g_shift=}")
+
+    return r_shift, g_shift
+
+
+def oneshot_align(r,g,b, align=ssd_align, **kwargs):
+    r_shift = align(r,b, **kwargs)
+    g_shift = align(g,b, **kwargs)
+    print(f"{r_shift=} {g_shift=}")
 
     return r_shift, g_shift
