@@ -1,0 +1,20 @@
+	r_shift=array([105,  41])	g_shift=array([48, 23])	emir
+	r_shift=array([-29,  21])	g_shift=array([-168,   23])	three_generations
+	r_shift=array([85, 32])	g_shift=array([42,  6])	train
+	r_shift=array([89, 23])	g_shift=array([41, 18])	icon
+	r_shift=array([12,  3])	g_shift=array([5, 2])	cathedral
+	r_shift=array([137,  23])	g_shift=array([64, 13])	village
+	r_shift=array([68, 61])	g_shift=array([77, 29])	self_portrait
+	r_shift=array([123,  15])	g_shift=array([59, 18])	harvesters
+	r_shift=array([ 0, 42])	g_shift=array([ 0, 18])	lady
+	r_shift=array([117,  29])	g_shift=array([56, 22])	turkmen
+	r_shift=array([105,  41])	g_shift=array([48, 23])	emir
+	r_shift=array([-29,  21])	g_shift=array([-168,   23])	three_generations
+	r_shift=array([85, 32])	g_shift=array([42,  6])	train
+	r_shift=array([89, 23])	g_shift=array([41, 18])	icon
+	r_shift=array([12,  3])	g_shift=array([5, 2])	cathedral
+	r_shift=array([137,  23])	g_shift=array([64, 13])	village
+	r_shift=array([68, 61])	g_shift=array([77, 29])	self_portrait
+	r_shift=array([123,  15])	g_shift=array([59, 18])	harvesters
+	r_shift=array([ 0, 42])	g_shift=array([ 0, 18])	lady
+	r_shift=array([117,  29])	g_shift=array([56, 22])	turkmen
