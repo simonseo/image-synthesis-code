@@ -18,10 +18,10 @@ from scipy.sparse.linalg import lsqr
 def toy_recon(image):
     imh, imw = image.shape
     im2var = np.arange(imh * imw).reshape((imh, imw)).astype(int)
-    A = np.zeros((imh*imw*2+1, imh*imw))
+    A = lil_matrix((imh*imw*2+1, imh*imw))
+    b = np.zeros(imh*imw*2+1)
     e = 0
     s = image
-    b = np.zeros(imh*imw*2+1)
     
     # objective 3: first pixel should be equal
     A[e, im2var[0, 0]] = 1
@@ -46,7 +46,6 @@ def toy_recon(image):
             b[e] = s[y+1, x] - s[y, x]
 
     # sparse matrix optimization
-    A = lil_matrix(A)
     solution = lsqr(A, b)
     print(solution[1:])
     return solution[0].reshape(imh, imw)
