@@ -75,16 +75,12 @@ class DCGenerator(nn.Module):
 
     def __init__(self, noise_size, conv_dim=64):
         super().__init__()
-
-        ###########################################
-        ##   FILL THIS IN: CREATE ARCHITECTURE   ##
-        ###########################################
-
-        self.up_conv1 = 
-        self.up_conv2 = 
-        self.up_conv3 = 
-        self.up_conv4 = 
-        self.up_conv5 = 
+        # input: BS x 100 x 1 x 1
+        self.up_conv1 = up_conv(noise_size, 256, 4, 1, 3, scale_factor=1, norm='instance', activ='relu') # BS x 256 x 4 x 4
+        self.up_conv2 = up_conv(256, 128, 3, norm='instance', activ='relu') # BS x 128 x 8 x 8
+        self.up_conv3 = up_conv(128, 64, 3, norm='instance', activ='relu') # BS x 64 x 16 x 16
+        self.up_conv4 = up_conv(64, 32, 3, norm='instance', activ='relu') # BS x 32 x 32 x 32
+        self.up_conv5 = up_conv(32, 3, 3, norm=None, activ='tanh') # BS x 3 x 64 x 64
 
     def forward(self, z):
         """
@@ -101,8 +97,12 @@ class DCGenerator(nn.Module):
         ###########################################
         ##   FILL THIS IN: FORWARD PASS   ##
         ###########################################
-
-        pass
+        z = self.up_conv1(z)
+        z = self.up_conv2(z)
+        z = self.up_conv3(z)
+        z = self.up_conv4(z)
+        z = self.up_conv5(z)
+        return z
 
 
 class ResnetBlock(nn.Module):
@@ -131,15 +131,15 @@ class CycleGenerator(nn.Module):
         ###########################################
 
         # 1. Define the encoder part of the generator
-        self.conv1 = 
-        self.conv2 = 
+        # self.conv1 = 
+        # self.conv2 = 
 
-        # 2. Define the transformation part of the generator
-        self.resnet_block = 
+        # # 2. Define the transformation part of the generator
+        # self.resnet_block = 
 
-        # 3. Define the decoder part of the generator
-        self.up_conv1 = 
-        self.up_conv2 = 
+        # # 3. Define the decoder part of the generator
+        # self.up_conv1 = 
+        # self.up_conv2 = 
 
     def forward(self, x):
         """
@@ -173,7 +173,7 @@ class DCDiscriminator(nn.Module):
         self.conv2 = conv(32, 64, 4, 2, 1, norm, False, 'relu')
         self.conv3 = conv(64, 128, 4, 2, 1, norm, False, 'relu')
         self.conv4 = conv(128, 256, 4, 2, 1, norm, False, 'relu')
-        self.conv5 = conv(256, 1, 4, 2, 1, init_zero_weights=False)
+        self.conv5 = conv(256, 1, 4, 1, 0, norm=None)
 
     def forward(self, x: torch.Tensor):
         """Forward pass, x is (B, C, H, W)."""
@@ -208,8 +208,16 @@ class PatchDiscriminator(nn.Module):
 
 
 if __name__ == "__main__":
-    a = torch.rand(4, 3, 64, 64)
-    D = PatchDiscriminator()
-    print(D(a).shape)
-    G = CycleGenerator()
-    print(G(a).shape)
+    # a = torch.rand(4, 3, 64, 64)
+    # D = PatchDiscriminator()
+    # print(D(a).shape)
+    # G = CycleGenerator()
+    # print(G(a).shape)
+
+    # DCGan Sanity check
+    x = torch.rand(4, 3, 64, 64)
+    D = DCDiscriminator()
+    print(D(x).shape)
+    z = torch.rand(4, 100, 1, 1)
+    G = DCGenerator(noise_size=100)
+    print(G(z).shape)
