@@ -165,13 +165,17 @@ class DCDiscriminator(nn.Module):
 
     def __init__(self, conv_dim=64, norm='instance'):
         super().__init__()
+        # def conv(
+        # in_channels, out_channels, 
+        # kernel_size, stride, padding, 
+        # norm, init_zero_weights, activ)
         self.conv1 = conv(3, 32, 4, 2, 1, norm, False, 'relu')
-        self.conv2 = 
-        self.conv3 = 
-        self.conv4 = 
-        self.conv5 = 
+        self.conv2 = conv(32, 64, 4, 2, 1, norm, False, 'relu')
+        self.conv3 = conv(64, 128, 4, 2, 1, norm, False, 'relu')
+        self.conv4 = conv(128, 256, 4, 2, 1, norm, False, 'relu')
+        self.conv5 = conv(256, 1, 4, 2, 1, init_zero_weights=False)
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor):
         """Forward pass, x is (B, C, H, W)."""
         x = self.conv1(x)
         x = self.conv2(x)
