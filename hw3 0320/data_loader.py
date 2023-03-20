@@ -49,7 +49,9 @@ def get_data_loader(data_path, opts):
             transforms.ToTensor(),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             transforms.RandomCrop(opts.image_size),
-            transforms.RandomHorizontalFlip()
+            transforms.RandomHorizontalFlip(),
+            transforms.ColorJitter(),
+            transforms.RandomRotation(15)
         ])
         train_transform = deluxe_transform
 
