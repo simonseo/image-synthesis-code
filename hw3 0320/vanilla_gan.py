@@ -171,6 +171,7 @@ def training_loop(train_dataloader, opts):
 
             real_images = batch
             real_images = utils.to_var(real_images)
+            real_images = DiffAugment(real_images, policy=policy)
             # real_cp = copy.deepcopy(real_images)  
             # del real_images  
             # real_images = real_cp
@@ -184,6 +185,7 @@ def training_loop(train_dataloader, opts):
 
             # 3. Generate fake images from the noise
             fake_images = G(noise)
+            fake_images = DiffAugment(fake_images, policy=policy)
 
             # 4. Compute the discriminator loss on the fake images
             D_fake_loss = torch.mean((D(fake_images.detach())) ** 2)
@@ -200,7 +202,8 @@ def training_loop(train_dataloader, opts):
 
             # 2. Generate fake images from the noise
             fake_images = G(noise)
-
+            fake_images = DiffAugment(fake_images, policy=policy)
+            
             # 3. Compute the generator loss
             G_loss = torch.mean(  (D(fake_images)-1) ** 2)
 
