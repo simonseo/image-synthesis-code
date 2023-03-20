@@ -11,12 +11,14 @@
 #       python vanilla_gan.py
 
 import argparse
+import copy
 import os
 
 import imageio
 import numpy as np
 import torch
 import torch.optim as optim
+import torch.multiprocessing
 from torch.utils.tensorboard.writer import SummaryWriter
 
 import utils
@@ -160,12 +162,18 @@ def training_loop(train_dataloader, opts):
 
     total_train_iters = opts.num_epochs * len(train_dataloader)
 
+    
+    torch.multiprocessing.set_sharing_strategy('file_system')
+
     for _ in range(opts.num_epochs):
 
         for batch in train_dataloader:
 
             real_images = batch
             real_images = utils.to_var(real_images)
+            real_cp = copy.deepcopy(real_images)  
+            del real_images  
+            real_images = real_cp
 
             # TRAIN THE DISCRIMINATOR
             # 1. Compute the discriminator loss on real images
@@ -194,7 +202,7 @@ def training_loop(train_dataloader, opts):
             fake_images = G(noise)
 
             # 3. Compute the generator loss
-            G_loss = torch.mean((D(fake_images.detach()) - 1) ** 2)
+            G_loss = torch.mean(  (D(fake_images.detach())-1) ** 2)
 
             # update the generator G
             g_optimizer.zero_grad()

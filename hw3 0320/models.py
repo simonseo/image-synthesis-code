@@ -18,8 +18,8 @@ import torch
 import torch.nn as nn
 
 
-def up_conv(in_channels, out_channels, kernel_size, stride=1, padding=1,
-            scale_factor=2, norm='batch', activ=None):
+def up_conv(in_channels:int, out_channels:int, kernel_size:int, stride=1, padding=1,
+            scale_factor=2, norm='batch', activ:str|None=None):
     """Create a transposed-convolutional layer, with optional normalization."""
     layers = []
     layers.append(nn.Upsample(scale_factor=scale_factor, mode='nearest'))
@@ -80,7 +80,7 @@ class DCGenerator(nn.Module):
         self.up_conv2 = up_conv(256, 128, 3, norm='instance', activ='relu') # BS x 128 x 8 x 8
         self.up_conv3 = up_conv(128, 64, 3, norm='instance', activ='relu') # BS x 64 x 16 x 16
         self.up_conv4 = up_conv(64, 32, 3, norm='instance', activ='relu') # BS x 32 x 32 x 32
-        self.up_conv5 = up_conv(32, 3, 3, norm=None, activ='tanh') # BS x 3 x 64 x 64
+        self.up_conv5 = up_conv(32, 3, 3, norm='', activ='tanh') # BS x 3 x 64 x 64
 
     def forward(self, z):
         """
@@ -173,7 +173,7 @@ class DCDiscriminator(nn.Module):
         self.conv2 = conv(32, 64, 4, 2, 1, norm, False, 'relu')
         self.conv3 = conv(64, 128, 4, 2, 1, norm, False, 'relu')
         self.conv4 = conv(128, 256, 4, 2, 1, norm, False, 'relu')
-        self.conv5 = conv(256, 1, 4, 1, 0, norm=None)
+        self.conv5 = conv(256, 1, 4, 2, 0, norm='')
 
     def forward(self, x: torch.Tensor):
         """Forward pass, x is (B, C, H, W)."""

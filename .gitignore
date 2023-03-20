@@ -1,5 +1,3 @@
 .DS_Store
 data
-
-hw1 0215/__pycache__/align.cpython-39.pyc
-hw1 0215/__pycache__/utils.cpython-39.pyc
+**/*.pyc
