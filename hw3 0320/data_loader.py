@@ -47,11 +47,10 @@ def get_data_loader(data_path, opts):
         deluxe_transform = transforms.Compose([
             transforms.Resize(osize, Image.BICUBIC),
             transforms.ToTensor(),
-            # transforms.ColorJitter(0.5,0.5,0.5,0.5),
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)),
             transforms.RandomCrop(opts.image_size),
             transforms.RandomHorizontalFlip(),
-            # transforms.RandomRotation(15)
+            transforms.RandomRotation(15)
         ])
         train_transform = deluxe_transform
 
