@@ -25,7 +25,7 @@ import argparse
 import os
 
 import imageio
-from torch.utils.tensorboard import SummaryWriter
+from torch.utils.tensorboard.writer import SummaryWriter
 import torch
 import torch.optim as optim
 import numpy as np
@@ -164,8 +164,8 @@ def training_loop(dataloader_X, dataloader_Y, opts):
     d_params = list(D_X.parameters()) + list(D_Y.parameters())
 
     # Create optimizers for the generators and discriminators
-    g_optimizer = optim.Adam(g_params, opts.lr, [opts.beta1, opts.beta2])
-    d_optimizer = optim.Adam(d_params, opts.lr, [opts.beta1, opts.beta2])
+    g_optimizer = optim.Adam(g_params, opts.lr, (opts.beta1, opts.beta2))
+    d_optimizer = optim.Adam(d_params, opts.lr, (opts.beta1, opts.beta2))
 
     iter_X = iter(dataloader_X)
     iter_Y = iter(dataloader_Y)
@@ -193,21 +193,32 @@ def training_loop(dataloader_X, dataloader_Y, opts):
 
         # TRAIN THE DISCRIMINATORS
         # 1. Compute the discriminator losses on real images
-        D_X_loss = 
-        D_Y_loss = 
+        if opts.use_diffaug:
+            images_X_aug = DiffAugment(images_X, policy=policy)
+            images_Y_aug = DiffAugment(images_Y, policy=policy)
+            D_X_loss = torch.mean((D_X(images_X_aug)-1)**2)
+            D_Y_loss = torch.mean((D_Y(images_Y_aug)-1)**2)
+        else:
+            D_X_loss = torch.mean((D_X(images_X)-1)**2)
+            D_Y_loss = torch.mean((D_Y(images_Y)-1)**2)
 
         d_real_loss = D_X_loss + D_Y_loss
 
-        # 2. Generate domain-X-like images based on real images in domain Y
-        fake_X = 
 
+        # 2. Generate domain-X-like images based on real images in domain Y
+        fake_X = G_YtoX(images_Y).detach()
         # 3. Compute the loss for D_X
-        D_X_loss = 
+        if opts.use_diffaug:
+            fake_X = DiffAugment(fake_X, policy=policy)
+        D_X_loss = torch.mean((D_X(fake_X)-1)**2)
+
 
         # 4. Generate domain-Y-like images based on real images in domain X
-
+        fake_Y = G_XtoY(images_X).detach()
         # 5. Compute the loss for D_Y
-        D_Y_loss = 
+        if opts.use_diffaug:
+            fake_Y = DiffAugment(fake_Y, policy=policy)
+        D_Y_loss = torch.mean((D_Y(fake_Y)-1)**2)
 
         d_fake_loss = D_X_loss + D_Y_loss
 
@@ -224,34 +235,39 @@ def training_loop(dataloader_X, dataloader_Y, opts):
         logger.add_scalar('D/YX/fake', D_Y_loss, iteration)
 
         # TRAIN THE GENERATORS
+        # Y--X-->Y CYCLE
         # 1. Generate domain-X-like images based on real images in domain Y
-        fake_X = 
+        fake_X = G_YtoX(images_Y)
 
         # 2. Compute the generator loss based on domain X
-        g_loss = 
+        if opts.use_diffaug:
+            fake_X = DiffAugment(fake_X, policy=policy)
+        g_loss = torch.mean((D_X(fake_X)-1)**2)
         logger.add_scalar('G/XY/fake', g_loss, iteration)
 
-        if opts.use_cycle_consistency_loss:
-            # 3. Compute the cycle consistency loss (the reconstruction loss)
-            cycle_consistency_loss = 
+        # if opts.use_cycle_consistency_loss:
+        #     # 3. Compute the cycle consistency loss (the reconstruction loss)
+        #     cycle_consistency_loss = 
 
-            g_loss += opts.lambda_cycle * cycle_consistency_loss
-            logger.add_scalar('G/XY/cycle', opts.lambda_cycle * cycle_consistency_loss, iteration)
+        #     g_loss += opts.lambda_cycle * cycle_consistency_loss
+        #     logger.add_scalar('G/XY/cycle', opts.lambda_cycle * cycle_consistency_loss, iteration)
 
         # X--Y-->X CYCLE
         # 1. Generate domain-Y-like images based on real images in domain X
-        fake_Y = 
+        fake_Y = G_XtoY(images_X)
 
         # 2. Compute the generator loss based on domain Y
-        g_loss += 
+        if opts.use_diffaug:
+            fake_Y = DiffAugment(fake_Y, policy=policy)
+        g_loss += torch.mean((D_Y(fake_Y)-1)**2)
         logger.add_scalar('G/YX/fake', g_loss, iteration)
 
-        if opts.use_cycle_consistency_loss:
-            # 3. Compute the cycle consistency loss (the reconstruction loss)
-            cycle_consistency_loss = 
+        # if opts.use_cycle_consistency_loss:
+        #     3. Compute the cycle consistency loss (the reconstruction loss)
+        #     cycle_consistency_loss = 
 
-            g_loss += opts.lambda_cycle * cycle_consistency_loss
-            logger.add_scalar('G/YX/cycle', cycle_consistency_loss, iteration)
+        #     g_loss += opts.lambda_cycle * cycle_consistency_loss
+        #     logger.add_scalar('G/YX/cycle', cycle_consistency_loss, iteration)
 
         # backprop the aggregated g losses and update G_XtoY and G_YtoX
         g_optimizer.zero_grad()

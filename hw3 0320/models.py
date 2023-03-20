@@ -19,7 +19,7 @@ import torch.nn as nn
 
 
 def up_conv(in_channels:int, out_channels:int, kernel_size:int, stride=1, padding=1,
-            scale_factor=2, norm='batch', activ:str|None=None):
+            scale_factor=2, norm='batch', activ=''):
     """Create a transposed-convolutional layer, with optional normalization."""
     layers = []
     layers.append(nn.Upsample(scale_factor=scale_factor, mode='nearest'))
@@ -43,7 +43,7 @@ def up_conv(in_channels:int, out_channels:int, kernel_size:int, stride=1, paddin
 
 
 def conv(in_channels, out_channels, kernel_size, stride=2, padding=1,
-         norm='batch', init_zero_weights=False, activ=None):
+         norm='batch', init_zero_weights=False, activ=''):
     """Create a convolutional layer, with optional normalization."""
     layers = []
     conv_layer = nn.Conv2d(
@@ -139,17 +139,18 @@ class CycleGenerator(nn.Module):
         ###########################################
         ##   FILL THIS IN: CREATE ARCHITECTURE   ##
         ###########################################
-
+        # input B x 3 x 64 x 64
         # 1. Define the encoder part of the generator
-        # self.conv1 = 
-        # self.conv2 = 
+        self.conv1 = conv(3, 32, 4, 2, 1, norm, init_zero_weights, 'relu') # B x 32 x 32 x 32
+        self.conv2 = conv(32, 64, 4, 2, 1, norm, init_zero_weights, 'relu') # B x 64 x 16 x 16
+
 
         # # 2. Define the transformation part of the generator
-        # self.resnet_block = 
+        self.resnet_block = ResnetBlock(64, norm, 'relu')
 
         # # 3. Define the decoder part of the generator
-        # self.up_conv1 = 
-        # self.up_conv2 = 
+        self.up_conv1 = up_conv(64, 32, 5, 1, 2, norm=norm, activ='relu') # BS x 32 x 32 x 32
+        self.up_conv2 = up_conv(32, 3, 5, 1, 2, norm='', activ='tanh') # BS x 3 x 64 x 64
 
     def forward(self, x):
         """
@@ -163,27 +164,26 @@ class CycleGenerator(nn.Module):
         ------
             out: BS x 3 x 32 x 32
         """
-        ###########################################
-        ##   FILL THIS IN: FORWARD PASS   ##
-        ###########################################
-
-        pass
-
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.resnet_block(x)
+        x = self.resnet_block(x)
+        x = self.resnet_block(x)
+        x = self.up_conv1(x)
+        x = self.up_conv2(x)
+        return x
 
 class DCDiscriminator(nn.Module):
     """Architecture of the discriminator network."""
 
     def __init__(self, conv_dim=64, norm='instance'):
         super().__init__()
-        # def conv(
-        # in_channels, out_channels, 
-        # kernel_size, stride, padding, 
-        # norm, init_zero_weights, activ)
-        self.conv1 = conv(3, 32, 4, 2, 1, norm, False, 'relu')
-        self.conv2 = conv(32, 64, 4, 2, 1, norm, False, 'relu')
-        self.conv3 = conv(64, 128, 4, 2, 1, norm, False, 'relu')
-        self.conv4 = conv(128, 256, 4, 2, 1, norm, False, 'relu')
-        self.conv5 = conv(256, 1, 4, 2, 0, norm='')
+        # input: B x 3 x 64 x 64
+        self.conv1 = conv(3, 32, 4, 2, 1, norm, False, 'relu') # B x 32 x 32 x 32
+        self.conv2 = conv(32, 64, 4, 2, 1, norm, False, 'relu') # B x 64 x 16 x16 
+        self.conv3 = conv(64, 128, 4, 2, 1, norm, False, 'relu') # B x 128 x 8 x 8
+        self.conv4 = conv(128, 256, 4, 2, 1, norm, False, 'relu') # B x 256 x 4 x 4
+        self.conv5 = conv(256, 1, 4, 2, 0, norm='') # B x 1 x 1 x 1
 
     def forward(self, x: torch.Tensor):
         """Forward pass, x is (B, C, H, W)."""
@@ -200,34 +200,35 @@ class PatchDiscriminator(nn.Module):
 
     def __init__(self, conv_dim=64, norm='batch'):
         super().__init__()
-
-        ###########################################
-        ##   FILL THIS IN: CREATE ARCHITECTURE   ##
-        ###########################################
-
-        # Hint: it should look really similar to DCDiscriminator.
+        # input: B x 3 x 64 x 64
+        self.conv1 = conv(3, 32, 4, 2, 1, norm, False, 'relu') # B x 32 x 32 x 32
+        self.conv2 = conv(32, 64, 4, 2, 1, norm, False, 'relu') # B x 64 x 16 x16 
+        self.conv3 = conv(64, 128, 4, 2, 1, norm, False, 'relu') # B x 128 x 8 x 8
+        self.conv4 = conv(128, 256, 4, 2, 1, norm, False, 'relu') # B x 256 x 4 x 4
+        self.conv5 = conv(256, 1, 3, 1, 1, norm='') # B x 1 x 4 x 4
 
 
     def forward(self, x):
-
-        ###########################################
-        ##   FILL THIS IN: FORWARD PASS   ##
-        ###########################################
-
-        pass
+        """Forward pass, x is (B, C, H, W)."""
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.conv4(x)
+        x = self.conv5(x)
+        return x.squeeze()
 
 
 if __name__ == "__main__":
-    # a = torch.rand(4, 3, 64, 64)
-    # D = PatchDiscriminator()
-    # print(D(a).shape)
-    # G = CycleGenerator()
-    # print(G(a).shape)
+    a = torch.rand(4, 3, 64, 64)
+    D = PatchDiscriminator()
+    print(D(a).shape)
+    G = CycleGenerator()
+    print(G(a).shape)
 
     # DCGan Sanity check
-    x = torch.rand(4, 3, 64, 64)
-    D = DCDiscriminator()
-    print(D(x).shape)
-    z = torch.rand(4, 100, 1, 1)
-    G = DCGenerator(noise_size=100)
-    print(G(z).shape)
+    # x = torch.rand(4, 3, 64, 64)
+    # D = DCDiscriminator()
+    # print(D(x).shape)
+    # z = torch.rand(4, 100, 1, 1)
+    # G = DCGenerator(noise_size=100)
+    # print(G(z).shape)
