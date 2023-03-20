@@ -203,24 +203,25 @@ def training_loop(dataloader_X, dataloader_Y, opts):
             D_Y_loss = torch.mean((D_Y(images_Y)-1)**2)
 
         d_real_loss = D_X_loss + D_Y_loss
+        logger.add_scalar('D/XY/real', D_X_loss, iteration)
+        logger.add_scalar('D/YX/real', D_Y_loss, iteration)
 
 
         # 2. Generate domain-X-like images based on real images in domain Y
-        fake_X = G_YtoX(images_Y).detach()
         # 3. Compute the loss for D_X
+        # 4. Generate domain-Y-like images based on real images in domain X
+        # 5. Compute the loss for D_Y
+        fake_X = G_YtoX(images_Y).detach()
+        fake_Y = G_XtoY(images_X).detach()
         if opts.use_diffaug:
             fake_X = DiffAugment(fake_X, policy=policy)
-        D_X_loss = torch.mean((D_X(fake_X)-1)**2)
-
-
-        # 4. Generate domain-Y-like images based on real images in domain X
-        fake_Y = G_XtoY(images_X).detach()
-        # 5. Compute the loss for D_Y
-        if opts.use_diffaug:
             fake_Y = DiffAugment(fake_Y, policy=policy)
-        D_Y_loss = torch.mean((D_Y(fake_Y)-1)**2)
-
+        D_X_loss = torch.mean((D_X(fake_X))**2)
+        D_Y_loss = torch.mean((D_Y(fake_Y))**2)
         d_fake_loss = D_X_loss + D_Y_loss
+        # plot the losses in tensorboard
+        logger.add_scalar('D/XY/fake', D_X_loss, iteration)
+        logger.add_scalar('D/YX/fake', D_Y_loss, iteration)
 
         # sum up the losses and update D_X and D_Y
         d_optimizer.zero_grad()
@@ -228,11 +229,6 @@ def training_loop(dataloader_X, dataloader_Y, opts):
         d_total_loss.backward()
         d_optimizer.step()
 
-        # plot the losses in tensorboard
-        logger.add_scalar('D/XY/real', D_X_loss, iteration)
-        logger.add_scalar('D/YX/real', D_Y_loss, iteration)
-        logger.add_scalar('D/XY/fake', D_X_loss, iteration)
-        logger.add_scalar('D/YX/fake', D_Y_loss, iteration)
 
         # TRAIN THE GENERATORS
         # Y--X-->Y CYCLE
