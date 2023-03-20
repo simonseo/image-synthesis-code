@@ -1,3 +1,5 @@
 .DS_Store
 data
 **/*.pyc
+hw3 0320/original_code/
+hw3 0320/checkpoints_vanilla/

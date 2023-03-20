@@ -76,11 +76,21 @@ class DCGenerator(nn.Module):
     def __init__(self, noise_size, conv_dim=64):
         super().__init__()
         # input: BS x 100 x 1 x 1
-        self.up_conv1 = up_conv(noise_size, 256, 4, 1, 3, scale_factor=1, norm='instance', activ='relu') # BS x 256 x 4 x 4
-        self.up_conv2 = up_conv(256, 128, 3, norm='instance', activ='relu') # BS x 128 x 8 x 8
-        self.up_conv3 = up_conv(128, 64, 3, norm='instance', activ='relu') # BS x 64 x 16 x 16
-        self.up_conv4 = up_conv(64, 32, 3, norm='instance', activ='relu') # BS x 32 x 32 x 32
-        self.up_conv5 = up_conv(32, 3, 3, norm='', activ='tanh') # BS x 3 x 64 x 64
+        # in_channels: int,
+        # out_channels: int,
+
+        # kernel_size: int,
+        # stride: int = 1,
+        # padding: int = 1,
+
+        # scale_factor: int = 2,
+        # norm: str = 'batch',
+        # activ: str | None = None
+        self.up_conv1 = up_conv(noise_size, 256, 5, 1, 2, scale_factor=4, norm='instance', activ='relu') # BS x 256 x 4 x 4
+        self.up_conv2 = up_conv(256, 128, 5, 1, 2, norm='instance', activ='relu') # BS x 128 x 8 x 8
+        self.up_conv3 = up_conv(128, 64, 5, 1, 2, norm='instance', activ='relu') # BS x 64 x 16 x 16
+        self.up_conv4 = up_conv(64, 32, 5, 1, 2, norm='instance', activ='relu') # BS x 32 x 32 x 32
+        self.up_conv5 = up_conv(32, 3, 5, 1, 2, norm='', activ='tanh') # BS x 3 x 64 x 64
 
     def forward(self, z):
         """
