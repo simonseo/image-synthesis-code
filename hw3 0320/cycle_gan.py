@@ -241,12 +241,14 @@ def training_loop(dataloader_X, dataloader_Y, opts):
         g_loss = torch.mean((D_X(fake_X)-1)**2)
         logger.add_scalar('G/XY/fake', g_loss, iteration)
 
-        # if opts.use_cycle_consistency_loss:
-        #     # 3. Compute the cycle consistency loss (the reconstruction loss)
-        #     cycle_consistency_loss = 
+        if opts.use_cycle_consistency_loss:
+            # 3. Compute the cycle consistency loss (the reconstruction loss)
+            p = 1
+            reconst_Y = G_XtoY(G_YtoX(images_Y))
+            cycle_consistency_loss = torch.mean((images_Y - reconst_Y)**p)
 
-        #     g_loss += opts.lambda_cycle * cycle_consistency_loss
-        #     logger.add_scalar('G/XY/cycle', opts.lambda_cycle * cycle_consistency_loss, iteration)
+            g_loss += opts.lambda_cycle * cycle_consistency_loss
+            logger.add_scalar('G/XY/cycle', opts.lambda_cycle * cycle_consistency_loss, iteration)
 
         # X--Y-->X CYCLE
         # 1. Generate domain-Y-like images based on real images in domain X
@@ -258,12 +260,14 @@ def training_loop(dataloader_X, dataloader_Y, opts):
         g_loss += torch.mean((D_Y(fake_Y)-1)**2)
         logger.add_scalar('G/YX/fake', g_loss, iteration)
 
-        # if opts.use_cycle_consistency_loss:
-        #     3. Compute the cycle consistency loss (the reconstruction loss)
-        #     cycle_consistency_loss = 
+        if opts.use_cycle_consistency_loss:
+            # 3. Compute the cycle consistency loss (the reconstruction loss)
+            p = 1
+            reconst_X = G_YtoX(G_XtoY(images_X))
+            cycle_consistency_loss = torch.mean((images_X - reconst_X)**p)
 
-        #     g_loss += opts.lambda_cycle * cycle_consistency_loss
-        #     logger.add_scalar('G/YX/cycle', cycle_consistency_loss, iteration)
+            g_loss += opts.lambda_cycle * cycle_consistency_loss
+            logger.add_scalar('G/YX/cycle', cycle_consistency_loss, iteration)
 
         # backprop the aggregated g losses and update G_XtoY and G_YtoX
         g_optimizer.zero_grad()
