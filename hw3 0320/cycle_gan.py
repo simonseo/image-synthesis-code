@@ -243,9 +243,8 @@ def training_loop(dataloader_X, dataloader_Y, opts):
 
         if opts.use_cycle_consistency_loss:
             # 3. Compute the cycle consistency loss (the reconstruction loss)
-            p = 1
             reconst_Y = G_XtoY(G_YtoX(images_Y))
-            cycle_consistency_loss = torch.mean(torch.norm(images_Y - reconst_Y, p)
+            cycle_consistency_loss = torch.mean(torch.abs(images_Y - reconst_Y))
 
             g_loss += opts.lambda_cycle * cycle_consistency_loss
             logger.add_scalar('G/XY/cycle', opts.lambda_cycle * cycle_consistency_loss, iteration)
@@ -262,9 +261,8 @@ def training_loop(dataloader_X, dataloader_Y, opts):
 
         if opts.use_cycle_consistency_loss:
             # 3. Compute the cycle consistency loss (the reconstruction loss)
-            p = 1
             reconst_X = G_YtoX(G_XtoY(images_X))
-            cycle_consistency_loss = torch.mean(torch.norm(images_X - reconst_X, p))
+            cycle_consistency_loss = torch.mean(torch.abs(images_X - reconst_X))
 
             g_loss += opts.lambda_cycle * cycle_consistency_loss
             logger.add_scalar('G/YX/cycle', cycle_consistency_loss, iteration)
