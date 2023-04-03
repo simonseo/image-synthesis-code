@@ -4,7 +4,7 @@ import torch.nn as nn
 import torchvision.models as models
 import copy
 import sys
-from utils import load_image, Normalization, device, imshow, get_image_optimizer
+from utils import load_image, Normalization, device, imshow, get_image_optimizer, unify_shape
 from style_and_content import ContentLoss, StyleLoss
 
 
@@ -22,8 +22,8 @@ style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 
 
 def get_model_and_losses(cnn, style_img, content_img,
-                               content_layers=content_layers_default,
-                               style_layers=style_layers_default):
+                               content_layers:list=content_layers_default,
+                               style_layers:list=style_layers_default):
     cnn = copy.deepcopy(cnn)
 
     # build a sequential model consisting of a Normalization layer
@@ -42,10 +42,45 @@ def get_model_and_losses(cnn, style_img, content_img,
     # trim off the layers after the last content and style losses
     # as they are vestigial
 
-    # normalization = TODO
-    # model = nn.Sequential(normalization)
+    normalization = Normalization().to(device)
+    style_img = normalization(style_img)
+    content_img = normalization(content_img)
+    
+    layers = []
+    conv_layer_count = 0
+    layer: nn.Module
+    for layer in cnn.children():
+        if isinstance(layer, nn.ReLU):
+            layer.inplace = False
 
-    raise NotImplementedError()
+        layers.append(layer)
+        style_img = layer(style_img)
+        content_img = layer(content_img)
+
+        if isinstance(layer, nn.Conv2d):
+            conv_layer_count += 1
+            layer_name = f"conv_{conv_layer_count}"
+
+            if layer_name in content_layers:
+                content_layers.remove(layer_name)
+                loss_layer = ContentLoss(content_img)
+                content_losses.append(loss_layer)
+                layers.append(loss_layer)
+                
+            if layer_name in style_layers:
+                style_layers.remove(layer_name)
+                loss_layer = StyleLoss(style_img)
+                style_losses.append(loss_layer)
+                layers.append(loss_layer)
+
+            if not (content_layers or style_layers):
+                break
+
+
+    model = nn.Sequential(*layers)
+    print(model)
+
+    # raise NotImplementedError()
 
     return model, style_losses, content_losses
 
@@ -71,16 +106,17 @@ def run_optimization(cnn, content_img, style_img, input_img, use_content=True, u
     """Run the image reconstruction, texture synthesis, or style transfer."""
     print('Building the style transfer model..')
     # get your model, style, and content losses
-
+    model, style_losses, content_losses = get_model_and_losses(cnn, style_img, content_img, style_layers=[]) # type: tuple[nn.Sequential, list, list]
     # get the optimizer
-
+    model.requires_grad_(False)
+    opt = get_image_optimizer(input_img)
+    
     # run model training, with one weird caveat
     # we recommend you use LBFGS, an algorithm which preconditions the gradient
     # with an approximate Hessian taken from only gradient evaluations of the function
     # this means that the optimizer might call your function multiple times per step, so as
     # to numerically approximate the derivative of the gradients (the Hessian)
     # so you need to define a function
-    # def closure():
     # here
     # which does the following:
     # clear the gradients
@@ -90,11 +126,36 @@ def run_optimization(cnn, content_img, style_img, input_img, use_content=True, u
     # one more hint: the images must be in the range [0, 1]
     # but the optimizer doesn't know that
     # so you will need to clamp the img values to be in that range after every step
+    
+    for _ in range(num_steps):
+        
+        def closure():
+            '''a closure that reevaluates the model and returns the loss'''
+            nonlocal input_img
 
-    raise NotImplementedError()
+            opt.zero_grad()
+            model(input_img)
 
-    # make sure to clamp once you are done
+            total_loss: torch.Tensor = 0
+            if use_content:
+                layer: ContentLoss
+                for layer in content_losses:
+                    total_loss += layer.loss * content_weight
+            if use_style:
+                layer: StyleLoss
+                for layer in style_losses:
+                    total_loss += layer.loss * style_weight
+            total_loss.backward()
 
+            with torch.no_grad():
+                input_img = torch.clamp_(input_img, 0, 1)
+
+            return total_loss
+        
+        orig_loss = opt.step(closure)
+        print(orig_loss)
+        
+    input_img = torch.clamp_(input_img, 0, 1)
     return input_img
 
 
@@ -106,28 +167,39 @@ def main(style_img_path, content_img_path):
     # interative MPL
     plt.ion()
 
+    style_img_original = style_img
+    style_img = unify_shape(content_img, style_img)
+
     assert style_img.size() == content_img.size(), \
         "we need to import style and content images of the same size"
 
     # plot the original input image:
     plt.figure()
-    imshow(style_img, title='Style Image')
+    imshow(style_img_original, title='Style Image Original')
+    plt.figure()
+    imshow(style_img, title='Style Image Resized')
 
     plt.figure()
     imshow(content_img, title='Content Image')
 
+
     # we load a pretrained VGG19 model from the PyTorch models library
     # but only the feature extraction part (conv layers)
     # and configure it for evaluation
-    # cnn = models.vgg19(pretrained=True).features.to(device).eval()
+    cnn = models.vgg19(pretrained=True).features.to(device).eval()
 
     # image reconstruction
     print("Performing Image Reconstruction from white noise initialization")
     # input_img = random noise of the size of content_img on the correct device
+    input_img = torch.rand_like(content_img, requires_grad=True, device=device)
     # output = reconstruct the image from the noise
+    output = run_optimization(cnn, content_img, style_img, input_img)
 
     plt.figure()
     imshow(output, title='Reconstructed Image')
+    plt.ioff()
+    plt.show()
+    return 
 
     # texture synthesis
     print("Performing Texture Synthesis from white noise initialization")

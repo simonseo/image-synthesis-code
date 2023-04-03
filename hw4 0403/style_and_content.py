@@ -39,13 +39,14 @@ class ContentLoss(nn.Module):
         # you need to `detach' the target content from the graph used to
         # compute the gradient in the forward pass that made it so that we don't track
         # those gradients anymore
-        # self.target = TODO
-        raise NotImplementedError()
+        self.target = target.detach()
+        # raise NotImplementedError()
 
     def forward(self, input):
         # this needs to be a passthrough where you save the appropriate loss value
-        # self.loss = TODO
-        raise NotImplementedError()
+        self.loss = F.mse_loss(input, self.target)
+        # self.loss = torch.norm(input-self.target, 2)**2
+        # raise NotImplementedError()
         return input
 
 
@@ -97,11 +98,11 @@ class StyleLoss(nn.Module):
     def __init__(self, target_feature):
         super(StyleLoss, self).__init__()
         # need to detach and cache the appropriate thing
-        # self.target = TODO
-        raise NotImplementedError()
+        self.target = target_feature
+        # raise NotImplementedError()
 
     def forward(self, input):
         # need to cache the appropriate loss value in self.loss
-        # self.loss = TODO
-        raise NotImplementedError()
+        self.loss = torch.tensor(1.,requires_grad=True)
+        # raise NotImplementedError()
         return input
