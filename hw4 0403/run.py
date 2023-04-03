@@ -6,6 +6,7 @@ import copy
 import sys
 from utils import load_image, Normalization, device, imshow, get_image_optimizer, unify_shape
 from style_and_content import ContentLoss, StyleLoss
+import argparse
 
 
 """A ``Sequential`` module contains an ordered list of child modules. For
@@ -46,7 +47,7 @@ def get_model_and_losses(cnn, style_img, content_img,
     style_img = normalization(style_img)
     content_img = normalization(content_img)
     
-    layers = []
+    layers = [normalization]
     conv_layer_count = 0
     layer: nn.Module
     for layer in cnn.children():
@@ -102,11 +103,12 @@ between 0 to 1 each time the network is run.
 
 
 def run_optimization(cnn, content_img, style_img, input_img, use_content=True, use_style=True, num_steps=300,
-                     style_weight=1000000, content_weight=1):
+                     style_weight=1000000, content_weight=1, **kwargs):
     """Run the image reconstruction, texture synthesis, or style transfer."""
     print('Building the style transfer model..')
     # get your model, style, and content losses
-    model, style_losses, content_losses = get_model_and_losses(cnn, style_img, content_img, style_layers=[]) # type: tuple[nn.Sequential, list, list]
+    num_steps = 5
+    model, style_losses, content_losses = get_model_and_losses(cnn, style_img, content_img, content_layers=[f'conv_{kwargs["content_layer"]}'], style_layers=[]) # type: tuple[nn.Sequential, list, list]
     # get the optimizer
     model.requires_grad_(False)
     opt = get_image_optimizer(input_img)
@@ -154,15 +156,17 @@ def run_optimization(cnn, content_img, style_img, input_img, use_content=True, u
         
         orig_loss = opt.step(closure)
         print(orig_loss)
-        
-    input_img = torch.clamp_(input_img, 0, 1)
+    
+    with torch.no_grad():
+        input_img = torch.clamp_(input_img, 0, 1)
     return input_img
 
 
-def main(style_img_path, content_img_path):
+def main(style_img_path, content_img_path, **kwargs):
     # we've loaded the images for you
     style_img = load_image(style_img_path)
     content_img = load_image(content_img_path)
+    output_path = "./images/output"
 
     # interative MPL
     plt.ion()
@@ -193,10 +197,10 @@ def main(style_img_path, content_img_path):
     # input_img = random noise of the size of content_img on the correct device
     input_img = torch.rand_like(content_img, requires_grad=True, device=device)
     # output = reconstruct the image from the noise
-    output = run_optimization(cnn, content_img, style_img, input_img)
+    output = run_optimization(cnn, content_img, style_img, input_img, **kwargs)
 
     plt.figure()
-    imshow(output, title='Reconstructed Image')
+    imshow(output, title='Reconstructed Image', save=True)
     plt.ioff()
     plt.show()
     return 
@@ -207,26 +211,32 @@ def main(style_img_path, content_img_path):
     # output = synthesize a texture like style_image
 
     plt.figure()
-    imshow(output, title='Synthesized Texture')
+    imshow(output, title='Synthesized Texture', save=True)
 
     # style transfer
     # input_img = random noise of the size of content_img on the correct device
     # output = transfer the style from the style_img to the content image
 
     plt.figure()
-    imshow(output, title='Output Image from noise')
+    imshow(output, title='Output Image from noise', save=True)
 
     print("Performing Style Transfer from content image initialization")
     # input_img = content_img.clone()
     # output = transfer the style from the style_img to the content image
 
     plt.figure()
-    imshow(output, title='Output Image from noise')
+    imshow(output, title='Output Image from noise', save=True)
 
     plt.ioff()
     plt.show()
 
 
 if __name__ == '__main__':
-    args = sys.argv[1:3]
-    main(*args)
+    parser = argparse.ArgumentParser(
+        description='')
+    parser.add_argument('style_image', type=str)
+    parser.add_argument('content_image', type=str)
+    parser.add_argument('--num_steps', type=int)
+    parser.add_argument('--content_layer', type=int)
+    args = parser.parse_args()
+    main(args.style_image, args.content_image, **vars(args))

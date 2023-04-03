@@ -1,6 +1,8 @@
+from time import time
 import torch
 import torch.nn as nn
 import torchvision.transforms as transforms
+from torchvision.utils import save_image
 from matplotlib import pyplot as plt
 from PIL import Image
 import torch.optim as optim
@@ -31,10 +33,14 @@ def unify_shape(image1, image2):
     return image2
     
 
-def imshow(tensor, title=None):
+def imshow(tensor, title=None, save=False):
+    if save:
+        save_image(tensor, f"./images/output/{title if title is not None else 'tmp'}-{int(time())}.png")
+
     image = tensor.cpu().clone()  # we clone the tensor to not do changes on it
     image = image.squeeze(0)      # remove the fake batch dimension
     image = unloader(image)
+    # plt.imsave(f"./images/output/{title if title is not None else 'tmp'}-{int(time())}.png", image)
     plt.imshow(image)
     if title is not None:
         plt.title(title)

@@ -1,0 +1,9 @@
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 1
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 2
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 3
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 4
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 5
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 6
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 7
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 8
+python run.py images/style/frida_kahlo.jpeg images/content/phipps.jpeg --num_steps 5 --content_layer 9
