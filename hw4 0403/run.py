@@ -24,7 +24,7 @@ style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 
 def get_model_and_losses(cnn, style_img, content_img,
                                content_layers:list=content_layers_default,
-                               style_layers:list=style_layers_default):
+                               style_layers:list=style_layers_default, **kwargs):
     cnn = copy.deepcopy(cnn)
 
     # build a sequential model consisting of a Normalization layer
@@ -107,8 +107,14 @@ def run_optimization(cnn, content_img, style_img, input_img, use_content=True, u
     """Run the image reconstruction, texture synthesis, or style transfer."""
     print('Building the style transfer model..')
     # get your model, style, and content losses
-    num_steps = 5
-    model, style_losses, content_losses = get_model_and_losses(cnn, style_img, content_img, content_layers=[f'conv_{kwargs["content_layer"]}'], style_layers=[]) # type: tuple[nn.Sequential, list, list]
+    if use_content and kwargs.get("content_layer") is not None:
+        kwargs["content_layers"] = [f'conv_{kwargs["content_layer"]}']
+    if not use_content:
+        kwargs["content_layers"] = []
+    if not use_style:
+        kwargs["style_layers"] = []
+
+    model, style_losses, content_losses = get_model_and_losses(cnn, style_img, content_img, **kwargs) # type: tuple[nn.Sequential, list, list]
     # get the optimizer
     model.requires_grad_(False)
     opt = get_image_optimizer(input_img)
@@ -193,39 +199,45 @@ def main(style_img_path, content_img_path, **kwargs):
     cnn = models.vgg19(pretrained=True).features.to(device).eval()
 
     # image reconstruction
-    print("Performing Image Reconstruction from white noise initialization")
-    # input_img = random noise of the size of content_img on the correct device
-    input_img = torch.rand_like(content_img, requires_grad=True, device=device)
-    # output = reconstruct the image from the noise
-    output = run_optimization(cnn, content_img, style_img, input_img, **kwargs)
+    if kwargs.get("reconstruct", False):
+        print("Performing Image Reconstruction from white noise initialization")
+        # input_img = random noise of the size of content_img on the correct device
+        input_img = torch.rand_like(content_img, requires_grad=True, device=device)
+        # output = reconstruct the image from the noise
+        output = run_optimization(cnn, content_img, style_img, input_img, use_style=False, **kwargs)
 
-    plt.figure()
-    imshow(output, title='Reconstructed Image', save=True)
-    plt.ioff()
-    plt.show()
-    return 
+        plt.figure()
+        imshow(output, title='Reconstructed Image')
 
     # texture synthesis
-    print("Performing Texture Synthesis from white noise initialization")
-    # input_img = random noise of the size of content_img on the correct device
-    # output = synthesize a texture like style_image
+    if kwargs.get("texture", False):
+        print("Performing Texture Synthesis from white noise initialization")
+        # input_img = random noise of the size of content_img on the correct device
+        input_img = torch.rand_like(content_img, requires_grad=True, device=device)
+        # output = synthesize a texture like style_image
+        output = run_optimization(cnn, content_img, style_img, input_img, use_content=True, **kwargs)
 
-    plt.figure()
-    imshow(output, title='Synthesized Texture', save=True)
+        plt.figure()
+        imshow(output, title='Synthesized Texture', save=True)
 
     # style transfer
-    # input_img = random noise of the size of content_img on the correct device
-    # output = transfer the style from the style_img to the content image
+    if kwargs.get("style_transfer", False):
+        # # input_img = random noise of the size of content_img on the correct device
+        # input_img = torch.rand_like(content_img, requires_grad=True, device=device)
+        # # output = transfer the style from the style_img to the content image
+        # output = run_optimization(cnn, content_img, style_img, input_img, use_content=True, **kwargs)
 
-    plt.figure()
-    imshow(output, title='Output Image from noise', save=True)
+        # plt.figure()
+        # imshow(output, title='Output_noise', save=True)
 
-    print("Performing Style Transfer from content image initialization")
-    # input_img = content_img.clone()
-    # output = transfer the style from the style_img to the content image
+        print("Performing Style Transfer from content image initialization")
+        content_img: torch.Tensor
+        input_img = content_img.clone().to(device).requires_grad_(True)
+        # output = transfer the style from the style_img to the content image
+        output = run_optimization(cnn, content_img, style_img, input_img, **kwargs)
 
-    plt.figure()
-    imshow(output, title='Output Image from noise', save=True)
+        plt.figure()
+        imshow(output, title='Output_content', save=True)
 
     plt.ioff()
     plt.show()
@@ -238,5 +250,13 @@ if __name__ == '__main__':
     parser.add_argument('content_image', type=str)
     parser.add_argument('--num_steps', type=int)
     parser.add_argument('--content_layer', type=int)
+    parser.add_argument('--content_weight', type=float, default=1)
+    parser.add_argument('--style_weight', type=float, default=1_000_000)
+    parser.add_argument('--style_layers', help='delimited list input of style loss layer positions', 
+                        type=lambda s: [item for item in s.split(',')])
+    
+    parser.add_argument('--reconstruct', action=argparse.BooleanOptionalAction)
+    parser.add_argument('--texture', action=argparse.BooleanOptionalAction)
+    parser.add_argument('--style_transfer', action=argparse.BooleanOptionalAction)
     args = parser.parse_args()
     main(args.style_image, args.content_image, **vars(args))

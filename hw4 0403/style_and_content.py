@@ -75,15 +75,18 @@ network so this normalization step is crucial.
 """
 
 
-def gram_matrix(activations):
+def gram_matrix(activations: torch.Tensor):
     a, b, c, d = activations.size()  # a=batch size(=1)
     # b=number of feature maps
     # (c,d)=dimensions of a f. map (N=c*d)
-    raise NotImplementedError()
+    feature_map = activations.clone().squeeze(0).reshape((b, c*d)) # F x (HxW)
+    gram = torch.mm(feature_map, feature_map.T)  # F x F
+    # raise NotImplementedError()
 
     # 'normalize' the values of the gram matrix
     # by dividing by the number of element in each feature maps.
-
+    assert gram.shape == (b, b)
+    normalized_gram = gram / (b**2)
     return normalized_gram
 
 
@@ -98,11 +101,11 @@ class StyleLoss(nn.Module):
     def __init__(self, target_feature):
         super(StyleLoss, self).__init__()
         # need to detach and cache the appropriate thing
-        self.target = target_feature
+        self.target = gram_matrix(target_feature.detach())
         # raise NotImplementedError()
 
     def forward(self, input):
         # need to cache the appropriate loss value in self.loss
-        self.loss = torch.tensor(1.,requires_grad=True)
-        # raise NotImplementedError()
+        
+        self.loss = F.mse_loss(gram_matrix(input), self.target)
         return input
