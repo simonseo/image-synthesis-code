@@ -155,8 +155,8 @@ def run_optimization(cnn, content_img, style_img, input_img, use_content=True, u
                     total_loss += layer.loss * style_weight
             total_loss.backward()
 
-            with torch.no_grad():
-                input_img = torch.clamp_(input_img, 0, 1)
+            # with torch.no_grad():
+            #     input_img = torch.clamp_(input_img, 0, 1)
 
             return total_loss
         
