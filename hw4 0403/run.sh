@@ -82,7 +82,7 @@
 # python run.py images/style/benthomas.jpeg images/content/tubingen.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
 # python run.py images/style/benthomas.jpeg images/content/wally.jpg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
 # python run.py images/style/benthomas.jpeg images/content/cmusnow.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
-python run.py images/style/benthomas.jpeg images/content/cyclist.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
+# python run.py images/style/benthomas.jpeg images/content/cyclist.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
 
 
 # python run.py images/style/fireman.jpeg images/content/dancing.jpg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
@@ -91,10 +91,57 @@ python run.py images/style/benthomas.jpeg images/content/cyclist.jpeg --num_step
 # python run.py images/style/fireman.jpeg images/content/tubingen.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
 # python run.py images/style/fireman.jpeg images/content/wally.jpg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
 # python run.py images/style/fireman.jpeg images/content/cmusnow.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
-python run.py images/style/fireman.jpeg images/content/cyclist.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
+# python run.py images/style/fireman.jpeg images/content/cyclist.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 10.0 --content_weight 1.0
 
 
 
+# python run.py images/style/simonseo.jpeg images/content/cmusnow.jpeg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 1_000_000.0 --content_weight 1.0 --content_layer 9
+# python run.py images/style/simonseo2.jpg images/content/dancing.jpg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/harryseo.jpg images/content/dancing.jpg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/harryseo2.jpg images/content/dancing.jpg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/harryseo3.jpeg images/content/dancing.jpg --num_steps 10 --style_transfer --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"\
+
+# python run.py images/style/simonseo.jpeg images/style/simonseo.jpeg --num_steps 10 --texture --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/simonseo3.jpg images/style/simonseo.jpeg --num_steps 10 --texture --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 0.5 --content_weight 0
+# python run.py images/style/simonseo2.jpg images/style/simonseo.jpeg --num_steps 10 --texture --style_layers "conv_4,conv_8,conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/simonseo2.jpg images/style/simonseo.jpeg --num_steps 10 --texture --style_layers "conv_8,conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/simonseo2.jpg images/style/simonseo.jpeg --num_steps 10 --texture --style_layers "conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/simonseo3.jpg images/style/simonseo.jpeg --num_steps 10 --texture --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/harryseo.jpg images/style/harryseo.jpg --num_steps 10 --texture --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/harryseo2.jpg images/style/harryseo2.jpg --num_steps 10 --texture --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/harryseo3.jpeg images/style/harryseo3.jpeg --num_steps 10 --texture --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 0.5 --content_weight 0
+
+# python run.py images/style/simonseo3.jpg images/style/fireman.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/simonseo3.jpg images/style/frida_kahlo.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/simonseo3.jpg images/style/starry_night.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/simonseo3.jpg images/content/fallingwater.png --num_steps 10 --style_transfer --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/simonseo3.jpg images/content/phipps.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/simonseo3.jpg images/content/tubingen.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+
+# python run.py images/style/fireman.jpeg images/style/fireman.jpeg --num_steps 10 --texture --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/fireman.jpeg images/style/fireman.jpeg --num_steps 10 --texture --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 0.5 --content_weight 0
+# python run.py images/style/fireman.jpeg images/style/fireman.jpeg --num_steps 10 --texture --style_layers "conv_3,conv_2,conv_1" --style_weight 1000000 --content_weight 0
+# python run.py images/style/fireman.jpeg images/content/dancing.jpg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/fireman.jpeg images/content/cyclist.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# pyth·on run.py images/style/fireman.jpeg images/style/simonseo.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/fireman.jpeg images/style/frida_kahlo.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/fireman.jpeg images/style/starry_night.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/fireman.jpeg images/content/tubingen.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/fireman.jpeg images/content/phipps.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/fireman.jpeg images/content/cmusnow.jpeg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
+# python run.py images/style/fireman.jpeg images/content/wally.jpg --num_steps 10 --style_transfer --style_layers "conv_3,conv_2,conv_1" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_9"
 
 
+# python run.py images/style/foggypit.jpeg images/style/foggypit.jpeg --num_steps 10 --texture --style_layers "conv_2,conv_4,conv_8,conv_16" --style_weight 0.5 --content_weight 0
+# python run.py images/style/foggypit.jpeg images/style/foggypit.jpeg --num_steps 10 --texture --style_layers "conv_3,conv_4,conv_5,conv_6" --style_weight 0.5 --content_weight 0
+# python run.py images/style/foggypit.jpeg images/style/foggypit.jpeg --num_steps 10 --texture --style_layers "conv_3,conv_2,conv_1" --style_weight 1000000 --content_weight 0
 
+python run.py images/style/foggypit.jpeg images/content/dancing.jpg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"
+python run.py images/style/foggypit.jpeg images/content/cyclist.jpeg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"
+python run.py images/style/foggypit.jpeg images/style/simonseo.jpeg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"
+python run.py images/style/foggypit.jpeg images/style/frida_kahlo.jpeg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"
+python run.py images/style/foggypit.jpeg images/style/starry_night.jpeg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"
+python run.py images/style/foggypit.jpeg images/content/tubingen.jpeg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"
+python run.py images/style/foggypit.jpeg images/content/phipps.jpeg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"
+python run.py images/style/foggypit.jpeg images/content/cmusnow.jpeg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"
+python run.py images/style/foggypit.jpeg images/content/wally.jpg --num_steps 10 --style_transfer --style_layers "conv_1,conv_3,conv_4,conv_5,conv_6" --style_weight 1_000_000.0 --content_weight 1.0 --content_layers "conv_2"

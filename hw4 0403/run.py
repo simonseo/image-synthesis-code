@@ -107,8 +107,8 @@ def run_optimization(cnn, content_img, style_img, input_img, use_content=True, u
     """Run the image reconstruction, texture synthesis, or style transfer."""
     print('Building the style transfer model..')
     # get your model, style, and content losses
-    if use_content and kwargs.get("content_layer") is not None:
-        kwargs["content_layers"] = [f'conv_{kwargs["content_layer"]}']
+    # if use_content and kwargs.get("content_layer") is not None:
+    #     kwargs["content_layers"] = [f'conv_{kwargs["content_layer"]}']
     if not use_content:
         kwargs["content_layers"] = []
     if not use_style:
@@ -172,7 +172,7 @@ def main(style_img_path, content_img_path, **kwargs):
     # we've loaded the images for you
     style_img = load_image(style_img_path)
     content_img = load_image(content_img_path)
-    output_path = "./images/output"
+    # output_path = "./images/output/content"
 
     # interative MPL
     plt.ion()
@@ -207,7 +207,7 @@ def main(style_img_path, content_img_path, **kwargs):
         output = run_optimization(cnn, content_img, style_img, input_img, use_style=False, **kwargs)
 
         plt.figure()
-        imshow(output, title='Reconstructed Image')
+        imshow(output, title='Reconstructed Image', save=True)
 
     # texture synthesis
     if kwargs.get("texture", False):
@@ -215,7 +215,7 @@ def main(style_img_path, content_img_path, **kwargs):
         # input_img = random noise of the size of content_img on the correct device
         input_img = torch.rand_like(content_img, requires_grad=True, device=device)
         # output = synthesize a texture like style_image
-        output = run_optimization(cnn, content_img, style_img, input_img, use_content=True, **kwargs)
+        output = run_optimization(cnn, content_img, style_img, input_img, use_content=False, **kwargs)
 
         plt.figure()
         imshow(output, title='Synthesized Texture', save=True)
@@ -252,6 +252,8 @@ if __name__ == '__main__':
     parser.add_argument('--content_layer', type=int)
     parser.add_argument('--content_weight', type=float, default=1)
     parser.add_argument('--style_weight', type=float, default=1_000_000)
+    parser.add_argument('--content_layers', help='delimited list input of content loss layer positions', 
+                        type=lambda s: [item for item in s.split(',')])
     parser.add_argument('--style_layers', help='delimited list input of style loss layer positions', 
                         type=lambda s: [item for item in s.split(',')])
     
