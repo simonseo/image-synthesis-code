@@ -10,7 +10,7 @@ from torchvision import transforms
 
 
 class CustomDataSet(Dataset):
-    def __init__(self, main_dir, resolution, load_alpha):
+    def __init__(self, main_dir: str, resolution:int, load_alpha: bool):
         self.main_dir = main_dir
         self.resolution = (resolution, resolution)
         self.transform = transforms.Compose([
@@ -48,7 +48,7 @@ class CustomDataSet(Dataset):
         return tensor_image, mask
 
 
-def get_data_loader(data_path, resolution, alpha=False, is_train=False):
+def get_data_loader(data_path:str, resolution:int, alpha=False, is_train=False):
     """Creates training and test data loaders.
     """
     dataset = CustomDataSet(data_path, resolution, alpha)

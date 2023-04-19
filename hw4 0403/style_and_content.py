@@ -36,17 +36,15 @@ class ContentLoss(nn.Module):
 
     def __init__(self, target,):
         super(ContentLoss, self).__init__()
-        # you need to `detach' the target content from the graph used to
+        # need to `detach' the target content from the graph used to
         # compute the gradient in the forward pass that made it so that we don't track
         # those gradients anymore
         self.target = target.detach()
-        # raise NotImplementedError()
 
     def forward(self, input):
         # this needs to be a passthrough where you save the appropriate loss value
         self.loss = F.mse_loss(input, self.target)
         # self.loss = torch.norm(input-self.target, 2)**2
-        # raise NotImplementedError()
         return input
 
 

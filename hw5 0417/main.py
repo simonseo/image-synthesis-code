@@ -6,6 +6,8 @@ from __future__ import print_function
 import argparse
 import os
 import os.path as osp
+from vanilla.models import DCGenerator
+# from stylegan.training.networks import Generator, MappingNetwork
 import numpy as np
 
 from LBFGS import FullBatchLBFGS
@@ -19,8 +21,9 @@ from torchvision.models import vgg19
 
 from dataloader import get_data_loader
 
+from typing import Literal, Tuple, Union
 
-def build_model(name):
+def build_model(name:Literal['vanilla','stylegan']) -> Tuple[nn.Module, int]:
     if name.startswith('vanilla'):
         z_dim = 100
         model_path = 'pretrained/%s.ckpt' % name
@@ -47,10 +50,14 @@ def build_model(name):
 
 class Wrapper(nn.Module):
     """The wrapper helps to abstract stylegan / vanilla GAN, z / w latent"""
-    def __init__(self, args, model, z_dim):
+    def __init__(self, args:argparse.Namespace, model: Literal['vanilla', 'stylegan'], z_dim:int):
         super().__init__()
+        # self.model: Literal['vanilla','stylegan']
+        # self.z_dim: int
         self.model, self.z_dim = model, z_dim
+        # self.latent: Literal['z', 'w', 'w+']
         self.latent = args.latent
+        #self.is_style: bool
         self.is_style = args.model == 'stylegan'
 
     def forward(self, param):
@@ -96,6 +103,26 @@ class PerceptualLoss(nn.Module):
         #                hint: hw4
         # You may split the model into different parts and store each part in 'self.model'
         self.model = nn.ModuleList()
+        self.model.add_module('norm', norm)
+        self.loss_fn:function = F.mse_loss
+            
+        # add perceptual loss layers to the module list
+        conv_layer_count = 0
+        layer: nn.Module
+        for layer in cnn.children():
+            if isinstance(layer, nn.ReLU):
+                layer.inplace = False
+            if isinstance(layer, nn.Conv2d):
+                conv_layer_count += 1
+                layer_name = f"conv_{conv_layer_count}"
+                if layer_name in add_layer:
+                    add_layer.remove(layer_name)
+                    self.model.add_module('content_loss', layer)
+                if not add_layer:
+                    break
+            else:
+                self.model.append(layer)
+
 
     def forward(self, pred, target):
 
@@ -103,26 +130,28 @@ class PerceptualLoss(nn.Module):
             target, mask = target
         
         loss = 0.
-        for net in self.model:
+        for name, net in self.model.named_children():
             pred = net(pred)
             target = net(target)
-
-            # TODO (Part 1): implement the forward call for perceptual loss
-            #                free feel to rewrite the entire forward call based on your
-            #                implementation in hw4
-            # TODO (Part 3): if mask is not None, then you should mask out the gradient
-            #                based on 'mask==0'. You may use F.adaptive_avg_pool2d() to 
-            #                resize the mask such that it has the same shape as the feature map.
-            pass
+            
+            # forward call for perceptual loss
+            if mask is None and name == 'content_loss':
+                loss += self.loss_fn(pred, target)
+                # TODO (Part 1): implement the forward call for perceptual loss
+                #                free feel to rewrite the entire forward call based on your
+                #                implementation in hw4
+                # TODO (Part 3): if mask is not None, then you should mask out the gradient
+                #                based on 'mask==0'. You may use F.adaptive_avg_pool2d() to 
+                #                resize the mask such that it has the same shape as the feature map.
+                pass
         return loss
 
 class Criterion(nn.Module):
-    def __init__(self, args, mask=False, layer=['conv_5']):
+    def __init__(self, args: argparse.Namespace, mask=False, layer=['conv_5']):
         super().__init__()
         self.perc_wgt = args.perc_wgt
         self.l1_wgt = args.l1_wgt # weight for l1 loss/mask loss
         self.mask = mask
-        
         self.perc = PerceptualLoss(layer)
 
     def forward(self, pred, target):
@@ -132,8 +161,8 @@ class Criterion(nn.Module):
             # TODO (Part 3): loss with mask
             pass
         else:
-            # TODO (Part 1): loss w/o mask
-            pass
+            # (Part 1): loss w/o mask
+            loss = self.perc(pred, target)
         return loss
 
 
@@ -160,7 +189,9 @@ def save_gifs(image_list, fname, col=1):
     imageio.mimsave(fname + '.gif', image_list)
 
 
-def sample_noise(dim, device, latent, model, N=1, from_mean=False):
+def sample_noise(dim:int, device:Literal['cuda', 'cpu'], latent:Literal['z', 'w', 'w+'], 
+                 model, # model:Union[DCGenerator, Generator], 
+                 N=1, from_mean=False):
     """
     To generate a noise vector, just sample from a normal distribution.
     To generate a style latent, you need to map the noise (z) to the style (W) space given the `model`.
@@ -177,25 +208,30 @@ def sample_noise(dim, device, latent, model, N=1, from_mean=False):
              Tensor on device in shape of (N, 1, dim) if latent == w
              Tensor on device in shape of (N, nw, dim) if latent == w+
     """
-    # TODO (Part 1): Finish the function below according to the comment above
+    # (Part 1): Finish the function below according to the comment above
+    mapping = model.mapping # mapping(z, None) produces (N, nw, dim)
+    # nw = 18 # W+ is a concatenation of 18 different 512-dimensional w vectors
+    z = torch.randn(N, dim, device=device) 
     if latent == 'z':
-        vector = torch.randn(N, dim, device=device) if not from_mean else torch.zeros(N, dim, device=device)
+        vector = z if not from_mean else torch.zeros(N, dim, device=device)
     elif latent == 'w':
         if from_mean:
-            vector = None
+            vector = mapping(z, None).mean(dim=0, keepdim=True)[:,0,:].reshape(N, 1, dim)
         else:
-            vector = None
+            vector = mapping(z, None)[:,0,:].reshape(N, 1, dim)
     elif latent == 'w+':
         if from_mean:
-            vector = None
+            vector = mapping(z, None).mean(dim=0, keepdim=True)
         else:
-            vector = None
+            vector = mapping(z, None)
     else:
         raise NotImplementedError('%s is not supported' % latent)
+    print(f"{device=} {latent=} \t {vector.shape=} \t {mapping(z, None).shape=}")
     return vector
 
 
-def optimize_para(wrapper, param, target, criterion, num_step, save_prefix=None, res=False):
+def optimize_para(wrapper: Wrapper, param:torch.Tensor, target:torch.Tensor, 
+                  criterion: Criterion, num_step: int, save_prefix=None, res=False):
     """
     wrapper: image = wrapper(z / w/ w+): an interface for a generator forward pass.
     param: z / w / w+
@@ -207,8 +243,11 @@ def optimize_para(wrapper, param, target, criterion, num_step, save_prefix=None,
     optimizer = FullBatchLBFGS([delta], lr=.1, line_search='Wolfe')
     iter_count = [0]
     def closure():
+        optimizer.zero_grad()
         iter_count[0] += 1
         # TODO (Part 1): Your optimiztion code. Free free to try out SGD/Adam.
+        image = wrapper(param)
+        loss = criterion(image, target)
         if iter_count[0] % 250 == 0:
             # visualization code
             print('iter count {} loss {:4f}'.format(iter_count, loss.item()))
@@ -227,6 +266,8 @@ def optimize_para(wrapper, param, target, criterion, num_step, save_prefix=None,
 
 
 def sample(args):
+    # model: nn.Module
+    # z_dim: int
     model, z_dim = build_model(args.model)
     wrapper = Wrapper(args, model, z_dim)
     batch_size = 16
@@ -298,6 +339,7 @@ def interpolate(args):
         alpha_list = np.linspace(0, 1, 50)
         image_list = []
         with torch.no_grad():
+            pass
             # TODO (Part 2): interpolation code
             #                hint: Write a for loop to append the convex combinations to image_list
         save_gifs(image_list, 'output/interpolate/%d_%s_%s' % (idx, args.model, args.latent))
