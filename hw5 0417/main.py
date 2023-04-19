@@ -17,7 +17,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import imageio
 import torchvision.utils as vutils
-from torchvision.models import vgg19
+from torchvision.models import vgg19, VGG19_Weights
 
 from dataloader import get_data_loader
 
@@ -83,8 +83,8 @@ class Normalization(nn.Module):
         # .view the mean and std to make them [C x 1 x 1] so that they can
         # directly work with image Tensor of shape [B x C x H x W].
         # B is batch size. C is number of channels. H is height and W is width.
-        self.mean = torch.tensor(mean).view(-1, 1, 1)
-        self.std = torch.tensor(std).view(-1, 1, 1)
+        self.mean = mean.clone().detach().view(-1, 1, 1)
+        self.std = std.clone().detach().view(-1, 1, 1)
 
     def forward(self, img):
         # normalize img
@@ -97,7 +97,7 @@ class PerceptualLoss(nn.Module):
         cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
         cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
         norm = Normalization(cnn_normalization_mean, cnn_normalization_std)
-        cnn = vgg19(pretrained=True).features.to(device).eval()
+        cnn = vgg19(weights=VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
         
         # TODO (Part 1): implement the Perceptual/Content loss
         #                hint: hw4
@@ -118,24 +118,23 @@ class PerceptualLoss(nn.Module):
                 if layer_name in add_layer:
                     add_layer.remove(layer_name)
                     self.model.add_module('content_loss', layer)
-                if not add_layer:
-                    break
-            else:
-                self.model.append(layer)
+                    if not add_layer:
+                        break
+                    continue
+            self.model.append(layer)
 
 
     def forward(self, pred, target):
-
         if isinstance(target, tuple):
             target, mask = target
-        
         loss = 0.
         for name, net in self.model.named_children():
+            # print(f"{name=} {net=}")
             pred = net(pred)
             target = net(target)
             
             # forward call for perceptual loss
-            if mask is None and name == 'content_loss':
+            if name == 'content_loss':
                 loss += self.loss_fn(pred, target)
                 # TODO (Part 1): implement the forward call for perceptual loss
                 #                free feel to rewrite the entire forward call based on your
@@ -209,24 +208,24 @@ def sample_noise(dim:int, device:Literal['cuda', 'cpu'], latent:Literal['z', 'w'
              Tensor on device in shape of (N, nw, dim) if latent == w+
     """
     # (Part 1): Finish the function below according to the comment above
-    mapping = model.mapping # mapping(z, None) produces (N, nw, dim)
+    # mapping = model.mapping # mapping(z, None) produces (N, nw, dim)
     # nw = 18 # W+ is a concatenation of 18 different 512-dimensional w vectors
     z = torch.randn(N, dim, device=device) 
     if latent == 'z':
         vector = z if not from_mean else torch.zeros(N, dim, device=device)
     elif latent == 'w':
         if from_mean:
-            vector = mapping(z, None).mean(dim=0, keepdim=True)[:,0,:].reshape(N, 1, dim)
+            vector = model.mapping(z, None).mean(dim=0, keepdim=True)[:,0,:].reshape(N, 1, dim)
         else:
-            vector = mapping(z, None)[:,0,:].reshape(N, 1, dim)
+            vector = model.mapping(z, None)[:,0,:].reshape(N, 1, dim)
     elif latent == 'w+':
         if from_mean:
-            vector = mapping(z, None).mean(dim=0, keepdim=True)
+            vector = model.mapping(z, None).mean(dim=0, keepdim=True)
         else:
-            vector = mapping(z, None)
+            vector = model.mapping(z, None)
     else:
         raise NotImplementedError('%s is not supported' % latent)
-    print(f"{device=} {latent=} \t {vector.shape=} \t {mapping(z, None).shape=}")
+    # print(f"{device=} {latent=} \t {vector.shape=} \t {mapping(z, None).shape=}")
     return vector
 
 
@@ -246,7 +245,7 @@ def optimize_para(wrapper: Wrapper, param:torch.Tensor, target:torch.Tensor,
         optimizer.zero_grad()
         iter_count[0] += 1
         # TODO (Part 1): Your optimiztion code. Free free to try out SGD/Adam.
-        image = wrapper(param)
+        image = wrapper(param+delta)
         loss = criterion(image, target)
         if iter_count[0] % 250 == 0:
             # visualization code
@@ -261,7 +260,7 @@ def optimize_para(wrapper: Wrapper, param:torch.Tensor, target:torch.Tensor,
     while iter_count[0] <= num_step:
         options = {'closure': closure, 'max_ls': 10}
         loss, _, lr, _, F_eval, G_eval, _, _ = optimizer.step(options)
-    image = wrapper(param)
+    image = wrapper(param+delta)
     return param + delta, image
 
 
@@ -301,7 +300,6 @@ def project(args):
                       'output/project/%d_%s_%s_%g' % (idx, args.model, args.latent, args.perc_wgt))
         if idx >= 0:
             break
-
 
 def draw(args):
     # define and load the pre-trained model
