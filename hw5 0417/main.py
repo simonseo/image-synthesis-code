@@ -11,19 +11,21 @@ from vanilla.models import DCGenerator
 import numpy as np
 
 from LBFGS import FullBatchLBFGS
+from torch.optim import Adam, SGD
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import imageio
 import torchvision.utils as vutils
+import torchvision.transforms as transforms
 from torchvision.models import vgg19, VGG19_Weights
 
 from dataloader import get_data_loader
 
 from typing import Literal, Tuple, Union
 
-def build_model(name:Literal['vanilla','stylegan']) -> Tuple[nn.Module, int]:
+def build_model(name:Literal['vanilla','stylegan'], resolution:int=64) -> Tuple[nn.Module, int]:
     if name.startswith('vanilla'):
         z_dim = 100
         model_path = 'pretrained/%s.ckpt' % name
@@ -31,6 +33,8 @@ def build_model(name:Literal['vanilla','stylegan']) -> Tuple[nn.Module, int]:
         from vanilla.models import DCGenerator
         model = DCGenerator(z_dim, 32, 'instance')
         model.load_state_dict(pretrain)
+        model = torch.nn.Sequential(model, transforms.Resize(resolution, antialias=True))
+
 
     elif name == 'stylegan':
         model_path = 'pretrained/%s.ckpt' % name
@@ -40,6 +44,7 @@ def build_model(name:Literal['vanilla','stylegan']) -> Tuple[nn.Module, int]:
         with dnnlib.util.open_url(model_path) as f:
             model = legacy.load_network_pkl(f)['G_ema']
             z_dim = model.z_dim
+        model.synthesis = torch.nn.Sequential(model.synthesis, transforms.Resize(resolution, antialias=True))
     else:
          return NotImplementedError('model [%s] is not implemented', name)
     if torch.cuda.is_available():
@@ -92,18 +97,18 @@ class Normalization(nn.Module):
 
 
 class PerceptualLoss(nn.Module):
-    def __init__(self, add_layer=['conv_5']):
+    def __init__(self, add_layer=['conv_5'], resolution=16):
         super().__init__()
         cnn_normalization_mean = torch.tensor([0.485, 0.456, 0.406]).to(device)
         cnn_normalization_std = torch.tensor([0.229, 0.224, 0.225]).to(device)
         norm = Normalization(cnn_normalization_mean, cnn_normalization_std)
+        resize = transforms.Resize(resolution, antialias=True)
         cnn = vgg19(weights=VGG19_Weights.IMAGENET1K_V1).features.to(device).eval()
         
-        # TODO (Part 1): implement the Perceptual/Content loss
-        #                hint: hw4
-        # You may split the model into different parts and store each part in 'self.model'
+        # (Part 1): implement the Perceptual/Content loss
         self.model = nn.ModuleList()
         self.model.add_module('norm', norm)
+        self.model.add_module('resize', resize)
         self.loss_fn:function = F.mse_loss
             
         # add perceptual loss layers to the module list
@@ -134,34 +139,48 @@ class PerceptualLoss(nn.Module):
             target = net(target)
             
             # forward call for perceptual loss
+            # TODO (Part 1): implement the forward call for perceptual loss
+            #                free feel to rewrite the entire forward call based on your
+            #                implementation in hw4
+            # TODO (Part 3): if mask is not None, then you should mask out the gradient
+            #                based on 'mask==0'. You may use F.adaptive_avg_pool2d() to 
+            #                resize the mask such that it has the same shape as the feature map.
             if name == 'content_loss':
-                loss += self.loss_fn(pred, target)
-                # TODO (Part 1): implement the forward call for perceptual loss
-                #                free feel to rewrite the entire forward call based on your
-                #                implementation in hw4
-                # TODO (Part 3): if mask is not None, then you should mask out the gradient
-                #                based on 'mask==0'. You may use F.adaptive_avg_pool2d() to 
-                #                resize the mask such that it has the same shape as the feature map.
-                pass
+                if mask is not None:
+                    mask_tmp = F.adaptive_avg_pool2d(mask, output_size=pred.shape[2:])
+                    mask_tmp = mask_tmp.repeat(1,pred.shape[1],1,1)
+                    layer_loss = self.loss_fn(pred[mask_tmp>0], target[mask_tmp>0])
+                else:
+                    layer_loss = self.loss_fn(pred, target)
+                loss += layer_loss
+                break
         return loss
 
 class Criterion(nn.Module):
-    def __init__(self, args: argparse.Namespace, mask=False, layer=['conv_5']):
+    def __init__(self, args: argparse.Namespace, mask=False, layer=['conv_4']):
         super().__init__()
         self.perc_wgt = args.perc_wgt
         self.l1_wgt = args.l1_wgt # weight for l1 loss/mask loss
+        self.l2_wgt = args.l2_wgt # weight for l2 loss/mask loss
         self.mask = mask
-        self.perc = PerceptualLoss(layer)
+        self.perc = PerceptualLoss(layer, args.resolution)
+        self.l1 = F.l1_loss
+        self.l2 = F.mse_loss
+
 
     def forward(self, pred, target):
         """Calculate loss of prediction and target. in p-norm / perceptual  space"""
         if self.mask:
-            target, mask = target
-            # TODO (Part 3): loss with mask
+            target_image, mask = target
+            # (Part 3): loss with mask
+            loss = self.perc_wgt * self.perc(pred, target) + \
+                self.l1_wgt * self.l1(pred[mask.repeat(1,3,1,1)>0], target_image[mask.repeat(1,3,1,1)>0])
             pass
         else:
             # (Part 1): loss w/o mask
-            loss = self.perc(pred, target)
+            loss = self.perc_wgt * self.perc(pred, target) + \
+                self.l1_wgt * self.l1(pred, target) + \
+                self.l2_wgt * self.l2(pred, target)
         return loss
 
 
@@ -229,7 +248,7 @@ def sample_noise(dim:int, device:Literal['cuda', 'cpu'], latent:Literal['z', 'w'
     return vector
 
 
-def optimize_para(wrapper: Wrapper, param:torch.Tensor, target:torch.Tensor, 
+def optimize_para(wrapper: Wrapper, param:torch.Tensor, target:Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]], 
                   criterion: Criterion, num_step: int, save_prefix=None, res=False):
     """
     wrapper: image = wrapper(z / w/ w+): an interface for a generator forward pass.
@@ -239,14 +258,16 @@ def optimize_para(wrapper: Wrapper, param:torch.Tensor, target:torch.Tensor,
     """
     delta = torch.zeros_like(param)
     delta = delta.requires_grad_().to(device)
-    optimizer = FullBatchLBFGS([delta], lr=.1, line_search='Wolfe')
+    optimizer = FullBatchLBFGS([delta], lr=0.1, line_search='Wolfe')
+    # optimizer = SGD([delta], lr=.0001)
     iter_count = [0]
     def closure():
         optimizer.zero_grad()
         iter_count[0] += 1
         # TODO (Part 1): Your optimiztion code. Free free to try out SGD/Adam.
         image = wrapper(param+delta)
-        loss = criterion(image, target)
+        loss = criterion(image, target) + torch.norm(delta, 2)
+        # import ipdb; ipdb.set_trace()
         if iter_count[0] % 250 == 0:
             # visualization code
             print('iter count {} loss {:4f}'.format(iter_count, loss.item()))
@@ -259,7 +280,8 @@ def optimize_para(wrapper: Wrapper, param:torch.Tensor, target:torch.Tensor,
     loss.backward()
     while iter_count[0] <= num_step:
         options = {'closure': closure, 'max_ls': 10}
-        loss, _, lr, _, F_eval, G_eval, _, _ = optimizer.step(options)
+        loss, _, lr, _, F_eval, G_eval, _, _ = optimizer.step(options) # LBFGS
+        # loss = optimizer.step(options['closure']) # Adam
     image = wrapper(param+delta)
     return param + delta, image
 
@@ -267,7 +289,7 @@ def optimize_para(wrapper: Wrapper, param:torch.Tensor, target:torch.Tensor,
 def sample(args):
     # model: nn.Module
     # z_dim: int
-    model, z_dim = build_model(args.model)
+    model, z_dim = build_model(args.model, args.resolution)
     wrapper = Wrapper(args, model, z_dim)
     batch_size = 16
     if torch.cuda.is_available():
@@ -287,7 +309,7 @@ def project(args):
     loader = get_data_loader(args.input, args.resolution, is_train=False)
 
     # define and load the pre-trained model
-    model, z_dim = build_model(args.model)
+    model, z_dim = build_model(args.model, args.resolution)
     wrapper = Wrapper(args, model, z_dim)
     print('model {} loaded'.format(args.model))
     criterion = Criterion(args)
@@ -303,7 +325,7 @@ def project(args):
 
 def draw(args):
     # define and load the pre-trained model
-    model, z_dim = build_model(args.model)
+    model, z_dim = build_model(args.model, args.resolution)
     wrapper = Wrapper(args, model, z_dim)
 
     # load the target and mask
@@ -315,10 +337,14 @@ def draw(args):
         save_images(mask, 'output/draw/%d_mask' % idx, 1)
         # TODO (Part 3): optimize sketch 2 image
         #                hint: Set from_mean=True when sampling noise vector
-
+        target = (rgb, mask)
+        param = sample_noise(z_dim, device, args.latent, model, from_mean=True)
+        optimize_para(wrapper, param, target, criterion, args.n_iters,
+                      'output/draw/%d_%s_%s_%g' % (idx, args.model, args.latent, args.perc_wgt))
+        # break
 
 def interpolate(args):
-    model, z_dim = build_model(args.model)
+    model, z_dim = build_model(args.model, args.resolution)
     wrapper = Wrapper(args, model, z_dim)
 
     # load the target and mask
@@ -337,9 +363,9 @@ def interpolate(args):
         alpha_list = np.linspace(0, 1, 50)
         image_list = []
         with torch.no_grad():
-            pass
-            # TODO (Part 2): interpolation code
-            #                hint: Write a for loop to append the convex combinations to image_list
+            for alpha in alpha_list:
+                image = wrapper(src + alpha * (dst - src))
+                image_list.append(image)
         save_gifs(image_list, 'output/interpolate/%d_%s_%s' % (idx, args.model, args.latent))
         if idx >= 3:
             break
@@ -357,6 +383,7 @@ def parse_arg():
     parser.add_argument('--n_iters', type=int, default=1000, help="number of optimization steps in the image projection")
     parser.add_argument('--perc_wgt', type=float, default=0.01, help="perc loss weight")
     parser.add_argument('--l1_wgt', type=float, default=10., help="L1 pixel loss weight")
+    parser.add_argument('--l2_wgt', type=float, default=3., help="L2 pixel loss weight")
     parser.add_argument('--resolution', type=int, default=64, help='Resolution of images')
     parser.add_argument('--input', type=str, default='data/cat/*.png', help="path to the input image")
     return parser.parse_args()
